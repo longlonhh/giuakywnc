@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Thư viện — NestJS (Book / Reader / BorrowedRecord)</title>
+<style>
+  :root{
+    --bg:#f5f6fa; --card:#ffffff; --ink:#1c2333; --muted:#7a8194;
+    --brand:#1f6feb; --brand-ink:#fff; --line:#e7eaf1;
+    --ok:#16a34a; --warn:#d97706; --danger:#dc2626;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui,'Segoe UI',Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+  header{background:#fff;border-bottom:1px solid var(--line);padding:14px 20px;display:flex;gap:16px;align-items:baseline;flex-wrap:wrap}
+  header h1{margin:0;font-size:18px}
+  header .db{color:var(--muted);font-size:12.5px}
+  .wrap{max-width:1100px;margin:0 auto;padding:16px 20px 60px}
+  .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:6px 0 18px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+  .card .num{font-size:26px;font-weight:700}
+  .card .lbl{color:var(--muted);font-size:12.5px;margin-top:2px}
+  .card.hi{border-color:#bfd7ff;background:#f2f8ff}
+  section{margin:18px 0}
+  section>h2{font-size:15px;margin:0 0 10px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+  .toolbar{display:flex;gap:8px;flex-wrap:wrap}
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+  thead th{background:#fafbfe;color:var(--muted);font-size:12px;letter-spacing:.03em;text-transform:uppercase;text-align:left}
+  th,td{padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top;font-size:13.5px}
+  tbody tr:last-child td{border-bottom:none}
+  tbody tr:hover{background:#fafcff}
+  .sub{color:var(--muted);font-size:12px;margin-top:2px}
+  .actions{text-align:right;white-space:nowrap}
+  .btn{border:1px solid var(--line);background:#fff;color:var(--ink);padding:7px 12px;border-radius:8px;font-size:13px;cursor:pointer}
+  .btn:hover{border-color:#c9d4ea;background:#f6f9ff}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:var(--brand-ink);font-weight:600}
+  .btn.primary:hover{background:#1a5fd0}
+  .btn.sm{padding:4px 9px;font-size:12px;border-radius:7px}
+  .btn.out{border-color:#dbe3f0}
+  .badge{display:inline-block;padding:3px 9px;border-radius:999px;font-size:12px;font-weight:600}
+  .b-ok{background:#e9f9ef;color:var(--ok)}
+  .b-warn{background:#fef3e2;color:var(--warn)}
+  .b-danger{background:#fdecec;color:var(--danger)}
+  .muted{color:var(--muted)}
+  .empty{color:var(--muted);padding:18px 4px;font-size:13.5px;text-align:center}
+  dialog{border:none;border-radius:14px;padding:0;width:min(480px,92vw);box-shadow:0 20px 60px rgba(15,20,40,.25)}
+  dialog::backdrop{background:rgba(15,20,40,.45)}
+  .dlg{padding:18px}
+  .dlg h3{margin:0 0 4px;font-size:16px}
+  .dlg .hint{color:var(--muted);font-size:12.5px;margin:0 0 12px}
+  form label{display:block;font-size:12.5px;color:var(--muted);margin:10px 0 4px}
+  input,select{width:100%;padding:9px 10px;border:1px solid var(--line);border-radius:9px;font-size:13.5px;background:#fff}
+  input:focus,select:focus{outline:2px solid #bfd7ff;border-color:var(--brand)}
+  .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .dlg-foot{display:flex;justify-content:flex-end;gap:8px;margin-top:16px}
+  #logWrap{background:#0d1220;color:#c8e1ff;border-radius:12px;padding:12px 14px;margin-top:14px;font-size:12.5px}
+  #logWrap .t{color:#7f8ea8;font-size:11.5px;letter-spacing:.04em;text-transform:uppercase}
+  pre#log{margin:6px 0 0;white-space:pre-wrap;word-break:break-word;max-height:220px;overflow:auto}
+  .note{color:var(--muted);font-size:12.5px;margin-top:6px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Quản lý thư viện</h1>
+
+</header>
+
+<div class="wrap">
+  <div class="stats">
+    <div class="card hi"><div class="num" id="stBorrowed">0</div><div class="lbl">Sách đang được mượn</div></div>
+    <div class="card"><div class="num" id="stAvailable">0</div><div class="lbl">Bản sách khả dụng</div></div>
+    <div class="card"><div class="num" id="stReaders">0</div><div class="lbl">Độc giả</div></div>
+    <div class="card"><div class="num" id="stTitles">0</div><div class="lbl">Đầu sách</div></div>
+  </div>
+
+  <section>
+    <h2><button class="btn primary" onclick="openDialog('#dialog-borrow')">＋ Độc giả mượn sách…</button></h2>
+
+    <table>
+      <thead>
+        <tr><th>#</th><th>Sách</th><th>Người mượn</th><th>Ngày mượn</th><th>Hạn trả</th><th>Tình trạng</th><th></th></tr>
+      </thead>
+      <tbody id="borrowList"></tbody>
+    </table>
+    <div class="empty" id="borrowEmpty">Chưa có sách nào đang được mượn — bấm “Độc giả mượn sách…”</div>
+
+    <table style="margin-top:16px">
+      <thead>
+        <tr><th>#</th><th>Sách</th><th>Người mượn</th><th>Ngày mượn</th><th>Ngày trả</th></tr>
+      </thead>
+      <tbody id="returnedBody"></tbody>
+    </table>
+    <div class="empty" id="returnedEmpty">Chưa có lượt trả sách nào</div>
+  </section>
+
+  <section>
+    <h2>Sách
+      <span class="toolbar">
+        <button class="btn" onclick="openDialog('#dialog-book')">＋ Thêm sách…</button>
+      </span>
+    </h2>
+    <table>
+      <thead><tr><th>#</th><th>Tên sách</th><th>Tác giả</th><th>Tổng bản</th><th>Còn lại</th><th></th></tr></thead>
+      <tbody id="bookList"></tbody>
+    </table>
+    <div class="empty" id="bookEmpty">Chưa có sách — bấm “Thêm sách…”</div>
+  </section>
+
+  <section>
+    <h2>Độc giả
+      <span class="toolbar">
+        <button class="btn" onclick="openDialog('#dialog-reader')">＋ Thêm độc giả…</button>
+      </span>
+    </h2>
+    <table>
+      <thead><tr><th>#</th><th>Độc giả</th><th>Điện thoại</th><th></th></tr></thead>
+      <tbody id="readerList"></tbody>
+    </table>
+    <div class="empty" id="readerEmpty">Chưa có độc giả — bấm “Thêm độc giả…”</div>
+  </section>
+
+  <div id="logWrap">
+    <div class="t">Phản hồi API lần gọi gần nhất</div>
+    <pre id="log">— chưa có thao tác —</pre>
+  </div>
+</div>
+
+<dialog id="dialog-book">
+  <div class="dlg">
+    <h3>Thêm sách</h3>
+    <p class="hint">Bảng <b>books</b> — Câu 2</p>
+    <form id="bookForm">
+      <label>Tên sách *</label><input id="b-title" required maxlength="255" placeholder="Lập trình NestJS" />
+      <label>Tác giả *</label><input id="b-author" required maxlength="255" placeholder="Nguyễn Văn A" />
+      <label>ISBN</label><input id="b-isbn" maxlength="50" placeholder="978-604-…" />
+      <label>Số bản</label><input id="b-copies" type="number" min="1" value="1" />
+      <div class="dlg-foot">
+        <button type="button" class="btn" onclick="closeDialog('#dialog-book')">Hủy</button>
+        <button class="btn primary" type="submit">Lưu sách</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<dialog id="dialog-reader">
+  <div class="dlg">
+    <h3>Thêm độc giả</h3>
+    <p class="hint">Bảng <b>readers</b> — Câu 2</p>
+    <form id="readerForm">
+      <label>Họ và tên *</label><input id="r-name" required maxlength="255" placeholder="Lê Văn Long" />
+      <label>Email * (duy nhất)</label><input id="r-email" type="email" required placeholder="long@example.com" />
+      <label>Điện thoại</label><input id="r-phone" maxlength="20" placeholder="0901234567" />
+      <div class="dlg-foot">
+        <button type="button" class="btn" onclick="closeDialog('#dialog-reader')">Hủy</button>
+        <button class="btn primary" type="submit">Lưu độc giả</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<dialog id="dialog-borrow">
+  <div class="dlg">
+    <h3>Độc giả mượn sách</h3>
+    <p class="hint">Ghi mới vào bảng <b>borrowed_records</b> — Câu 3.3</p>
+    <form id="borrowForm">
+      <label>Độc giả *</label><select id="borrow-reader" required></select>
+      <label>Sách (còn bản) *</label><select id="borrow-book" required></select>
+      <div class="row">
+        <div><label>Số ngày mượn</label><input id="borrow-days" type="number" min="1" max="90" value="14" /></div>
+        <div><label>&nbsp;</label><button class="btn primary" type="submit" style="width:100%">Cho mượn</button></div>
+      </div>
+      <div class="dlg-foot">
+        <button type="button" class="btn" onclick="closeDialog('#dialog-borrow')">Đóng</button>
+      </div>
+    </form>
+  </div>
+</dialog>
+
+<script src="/app.js"></script>
+</body>
+</html>

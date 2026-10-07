@@ -1,0 +1,16 @@
+# Dependencies
+node_modules/
+
+# Build
+dist/
+
+# Environment variables (mật khẩu CSDL)
+.env
+
+# Dữ liệu nội bộ của ứng dụng Postman (không phải code)
+.postman/
+postman/
+
+# Logs & hệ thống
+*.log
+.DS_Store
